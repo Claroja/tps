@@ -2,6 +2,7 @@ import requests
 import time
 from bs4 import BeautifulSoup
 import json
+import os
 
 class Spider(object):
 
@@ -59,16 +60,24 @@ class Spider(object):
     def get_page_data(self, get_page_data):
         self.page_data = get_page_data(self.clean_data)
 
-    def get_all_data(self, get_page_data,interval = 2):
-        for url in self.all_url:
+    def get_all_data(self, get_page_data,type = "all",interval = 2):
+        if type != "all":
+            os.mkdir("./%s"%self.name)
+        for i in range(len(self.all_url)):
+            url = self.all_url[i]
             self.get_page_source(url=url, encoding="gbk")
             self.clean()
             self.get_page_data(get_page_data=get_page_data)
             self.page_data["url"]=url
-            self.all_data.append(self.page_data)
+            if type == "all":
+                self.all_data.append(self.page_data)
+            else:
+                file = open('./%s/%s.json'%(self.name,i),'w',encoding='utf8')
+                json.dump(self.page_data, file)
+                file.close()
             time.sleep(interval)
 
-    def to_json(self):
-        file = open('%s.json'%self.name,'w',encoding='utf8')
+    def to_json(self,path="./"):
+        file = open('%s%s.json'%(path,self.name),'w',encoding='utf8')
         json.dump(self.all_data,file)
         file.close()

@@ -2,3 +2,7 @@
 test.py
 *.json
 *.swap
+__*
+log*
+/*
+!tps.py

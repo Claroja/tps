@@ -47,7 +47,7 @@ class Spider(object):
         :param encoding: (str) 国内网站不是"utf8"就是"gbk"
         :return: (None) 将源码传给self.raw_data每次解析这个都会变
         """
-        req = requests.get(url, self.headers)
+        req = requests.get(url, self.headers, timeout = 61)
         data = req.content
         self.raw_data = data.decode(encoding)
 
@@ -68,9 +68,9 @@ class Spider(object):
     def get_page_url(self, get_page_url):
         self.page_url = get_page_url(self.clean_data)
 
-    def get_all_url(self,get_page_url,interval = 2):
+    def get_all_url(self,get_page_url,interval = 0):
         for url in self.roll_url:
-            self.get_page_source(url= url, encoding="GBK")
+            self.get_page_source(url= url)
             self.clean()
             self.get_page_url(get_page_url)
             self.all_url.extend(self.page_url)
@@ -80,14 +80,19 @@ class Spider(object):
         self.page_data = get_page_data(self.clean_data)
         self.page_data["name"]=self.name
 
-    def get_all_data(self, get_page_data,type = "all",interval = 2):
-        if type != "all":
+    def get_all_data(self, get_page_data,type = "all",interval = 0):
+        start = 0
+        if type != "all" and not os.path.exists("./%s"%self.name):
             os.mkdir("./%s"%self.name)
-
-        for i in range(len(self.all_url)):
+        if os.path.exists("./%s"%self.name):
+            files = os.listdir("./%s"%self.name)
+            files = [int(file.split(".")[0]) for file in files]
+            start = max(files)+2
+            self.all_url = json.load(open("./all_url.json",'r'))
+        for i in range(start,len(self.all_url)):
             url = self.all_url[i]
             try:
-                self.get_page_source(url=url, encoding="gbk")
+                self.get_page_source(url=url)
                 self.clean()
                 self.get_page_data(get_page_data=get_page_data)
                 self.page_data["url"]=url
@@ -107,3 +112,11 @@ class Spider(object):
         file = open('%s%s.json'%(path,self.name),'w',encoding='utf8')
         json.dump(self.all_data,file)
         file.close()
+
+    def add_json(self):
+        files = os.listdir("./%s"%self.name)
+        all_data = []
+        for file in files:
+            temp = json.load(open("./%s/%s" % (self.name,file)))
+            all_data.append(temp)
+        json.dump(all_data, open("./%s/all.json"%self.name, 'w'))

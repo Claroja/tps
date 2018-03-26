@@ -66,9 +66,20 @@ class Spider(object):
             self.clean_data = BeautifulSoup(self.clean_data, 'lxml')
 
     def get_page_url(self, get_page_url):
+        """
+        获得该页的所有文章的url,这个方法要重写
+        :param get_page_url: 传入重写的方法名
+        :return:
+        """
         self.page_url = get_page_url(self.clean_data)
 
     def get_all_url(self,get_page_url,interval = 0):
+        """
+        获得该栏目下所有网站的url
+        :param get_page_url: 重写的获得url的方法
+        :param interval: 设置时间间隔
+        :return:
+        """
         for url in self.roll_url:
             self.get_page_source(url= url)
             self.clean()
@@ -77,10 +88,22 @@ class Spider(object):
             time.sleep(interval)
 
     def get_page_data(self, get_page_data):
+        """
+        获得最终的数据,要重写获得最终数据的方法
+        :param get_page_data: 重写的获得数据的方法
+        :return:
+        """
         self.page_data = get_page_data(self.clean_data)
         self.page_data["name"]=self.name
 
-    def get_all_data(self, get_page_data,type = "all",interval = 0):
+    def get_all_data(self, get_page_data,type = None,interval = 0):
+        """
+        获得最终数据,总流程
+        :param get_page_data: 重写的获得数据的方法
+        :param type: "all"是将每篇文章添加在list表中,在内存中处理,不推荐.
+        :param interval: 设置时间间隔
+        :return:
+        """
         start = 0
         if type != "all" and not os.path.exists("./%s"%self.name):
             os.mkdir("./%s"%self.name)
@@ -99,14 +122,12 @@ class Spider(object):
                 if type == "all":
                     self.all_data.append(self.page_data)
                 else:
-                    file = open('./%s/%s.json'%(self.name,i),'w',encoding='utf8')
-                    json.dump(self.page_data, file)
-                    file.close()
+                    with open('./%s/%s.json'%(self.name,i),'w',encoding='utf8') as file:
+                        json.dump(self.page_data, file)
                 time.sleep(interval)
             except:
-                file = open('./log.txt', 'a', encoding='utf8')
-                file.write(url+"\n")
-                file.close()
+                with open('./log.txt', 'a', encoding='utf8') as file:
+                    file.write(url+"\n")
 
     def to_json(self,path="./"):
         file = open('%s%s.json'%(path,self.name),'w',encoding='utf8')
@@ -114,6 +135,10 @@ class Spider(object):
         file.close()
 
     def add_json(self):
+        """
+        将所有的json文件整合到一起
+        :return:
+        """
         files = os.listdir("./%s"%self.name)
         all_data = []
         for file in files:

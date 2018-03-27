@@ -1,5 +1,5 @@
 import time
-
+import requests
 
 def is_yesterday(stamp):
     today = time.strftime("%Y %m %d")
@@ -11,6 +11,11 @@ def is_yesterday(stamp):
     else:
         return False
 
+def get_img(path,filename):
+    r = requests.get(path, stream=True)
+    with open(filename, 'wb') as fd:
+        for chunk in r.iter_content():
+            fd.write(chunk)
 
 if __name__ == "__main__":
     a = is_yesterday(123123)

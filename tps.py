@@ -4,11 +4,15 @@ from bs4 import BeautifulSoup
 import json
 import os
 class Ops(object):
-    def __init__(self,name):
+    def __init__(self,name,path="./"):
         self.headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36'
         }
         self.name = name
+        self.path = path
+        if not os.path.exists("./%s"%self.name):  # 如果是第一次下载则创建文件夹
+            os.mkdir("./%s"%self.name)
+            os.mkdir("./%s/temp"%self.name)
 
     def get_page_source(self, url = None, encoding ="utf8"):
         """
@@ -34,6 +38,8 @@ class Ops(object):
             self.clean_data = clean_def(self.raw_data)
         if type == "html":
             self.clean_data = BeautifulSoup(self.clean_data, 'lxml')
+        elif type == "json":
+            self.clean_data = json.loads(self.clean_data)
 
     def get_page_data(self, get_page_data):
         """
@@ -44,13 +50,23 @@ class Ops(object):
         self.page_data = get_page_data(self.clean_data)
         self.page_data["name"]=self.name
 
-    def to_json(self,path="./"):
-        file = open('%s%s/all.json'%(path,self.name),'w',encoding='utf8')
-        json.dump(self.page_data,file)
-        file.close()
+    def to_json(self):
+        """
+        获得文件,并保存为json
+        :param path:
+        :return:
+        """
+        with open('%s%s/all.json'%(self.path,self.name),'w',encoding='utf8') as file:
+            json.dump(self.page_data,file)
 
     def get_img(self,url,name):
-        r = requests.get(url, stream=True)
+        """
+        将图片保存在主目录(self.name)下的img文件夹下
+        :param url:
+        :param name:保存的文件名称
+        :return:
+        """
+        r = requests.get(url,stream=True)
         with open("./%s/img/%s"%(self.name, name), 'wb') as fd:
             for chunk in r.iter_content():
                 fd.write(chunk)
@@ -58,7 +74,7 @@ class Ops(object):
 
 class Tps(Ops):
 
-    def __init__(self, name ):
+    def __init__(self, name):
         """
         初始化
         :param name: (str)爬虫的名字,用于新建文件夹,爬取结果有一列为name
@@ -74,7 +90,7 @@ class Tps(Ops):
         self.page_data = None
         self.all_data = []
 
-    def get_roll_url(self,init_url, change_url,start,end):
+    def get_roll_url(self,start,end,init_url,change_url = None):
         """
         获得最外层(roll)的所有连接
         :param start:(int) 开始的页面,url中类似page=1,注意有些网站第一页没有该参数
@@ -82,9 +98,10 @@ class Tps(Ops):
         :return: (None) 拼贴好所有url直接传递给了self.roll_url
         """
         roll_url = [init_url]
-        for i in range(start, (end+1)):
-            url = change_url % i
-            roll_url.append(url)
+        if change_url:
+            for i in range(start, (end+1)):
+                url = change_url % i
+                roll_url.append(url)
         self.roll_url = roll_url
 
     def get_page_url(self, get_page_url):
@@ -95,7 +112,7 @@ class Tps(Ops):
         """
         self.page_url = get_page_url(self.clean_data)
 
-    def get_all_url(self,get_page_url,interval = 0):
+    def get_all_url(self,get_page_url,clean_def=None, interval = 2,type="html",encoding = "utf8"):
         """
         获得该栏目下所有网站的url
         :param get_page_url: 重写的获得url的方法
@@ -103,15 +120,15 @@ class Tps(Ops):
         :return:
         """
         for url in self.roll_url:
-            self.get_page_source(url= url)
-            self.clean()
+            self.get_page_source(url= url,encoding=encoding)
+            self.clean(clean_def,type=type)
             self.get_page_url(get_page_url)
             self.all_url.extend(self.page_url)
             time.sleep(interval)
         with open('./%s/all_url.json' % self.name, 'w', encoding='utf8') as file:
             json.dump(self.all_url, file)
 
-    def get_all_data(self, get_page_data,interval = 0):
+    def get_all_data(self, get_page_data,encoding='utf8',interval = 1):
         """
         获得最终数据,总流程
         :param get_page_data: 重写的获得数据的方法
@@ -120,18 +137,17 @@ class Tps(Ops):
         :return:
         """
         start = 0
-        if not os.path.exists("./%s"%self.name):
-            os.mkdir("./%s"%self.name)
-            os.mkdir("./%s/temp"%self.name)
-        if os.path.exists("./%s"%self.name):
+        if os.path.exists("./%s/all_url.json"%self.name):  # 断点续传
+            self.all_url = json.load(open("./%s/all_url.json" % self.name, 'r'))
             files = os.listdir("./%s/temp"%self.name)
-            files = [int(file.split(".")[0]) for file in files]
-            start = max(files)+2
-            self.all_url = json.load(open("./all_url.json",'r'))
+            if len(files)>0:
+                files = [int(file.split(".")[0]) for file in files]
+                start = max(files)+2
+
         for i in range(start,len(self.all_url)):
             url = self.all_url[i]
             try:
-                self.get_page_source(url=url)
+                self.get_page_source(url=url,encoding=encoding)
                 self.clean()
                 self.get_page_data(get_page_data=get_page_data)
                 self.page_data["url"]=url
@@ -139,7 +155,7 @@ class Tps(Ops):
                     json.dump(self.page_data, file)
                 time.sleep(interval)
             except:
-                with open('./log.txt', 'a', encoding='utf8') as file:
+                with open('./%s/log.txt'%self.name, 'a', encoding='utf8') as file:
                     file.write(url+"\n")
 
     def get_all_img(self):

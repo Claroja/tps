@@ -4,26 +4,26 @@ from bs4 import BeautifulSoup
 import json
 import os
 class Ops(object):
-    def __init__(self,name,path="./"):
+    def __init__(self,name,encoding = 'gbk',path="./"):
         self.headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36'
         }
         self.name = name
         self.path = path
+        self.encoding = encoding
         if not os.path.exists("./%s"%self.name):  # 如果是第一次下载则创建文件夹
             os.mkdir("./%s"%self.name)
             os.mkdir("./%s/temp"%self.name)
 
-    def get_page_source(self, url = None, encoding ="utf8"):
+    def get_page_source(self, url = None):
         """
         获得网页的源代码
         :param url: (str)
-        :param encoding: (str) 国内网站不是"utf8"就是"gbk"
         :return: (None) 将源码传给self.raw_data每次解析这个都会变
         """
         req = requests.get(url, self.headers, timeout = 61)
         data = req.content
-        self.raw_data = data.decode(encoding)
+        self.raw_data = data.decode(self.encoding)
 
     def clean(self,clean_def = None,type = "html"):
         """
@@ -74,14 +74,14 @@ class Ops(object):
 
 class Tps(Ops):
 
-    def __init__(self, name):
+    def __init__(self, name, encoding='gbk',path="./"):
         """
         初始化
         :param name: (str)爬虫的名字,用于新建文件夹,爬取结果有一列为name
         :param init_url: (str)初始化的url
         :param change_url: (str)改变的url
         """
-        super().__init__(name)
+        super().__init__(name, encoding=encoding,path = path)
         self.raw_data = None
         self.clean_data = None
         self.page_url = None
@@ -112,7 +112,7 @@ class Tps(Ops):
         """
         self.page_url = get_page_url(self.clean_data)
 
-    def get_all_url(self,get_page_url,clean_def=None, interval = 2,type="html",encoding = "utf8"):
+    def get_all_url(self,get_page_url,clean_def=None, interval = 2,type="html"):
         """
         获得该栏目下所有网站的url
         :param get_page_url: 重写的获得url的方法
@@ -120,7 +120,7 @@ class Tps(Ops):
         :return:
         """
         for url in self.roll_url:
-            self.get_page_source(url= url,encoding=encoding)
+            self.get_page_source(url= url)
             self.clean(clean_def,type=type)
             self.get_page_url(get_page_url)
             self.all_url.extend(self.page_url)
@@ -128,7 +128,7 @@ class Tps(Ops):
         with open('./%s/all_url.json' % self.name, 'w', encoding='utf8') as file:
             json.dump(self.all_url, file)
 
-    def get_all_data(self, get_page_data,encoding='utf8',interval = 1):
+    def get_all_data(self, get_page_data,interval = 2):
         """
         获得最终数据,总流程
         :param get_page_data: 重写的获得数据的方法
@@ -147,7 +147,7 @@ class Tps(Ops):
         for i in range(start,len(self.all_url)):
             url = self.all_url[i]
             try:
-                self.get_page_source(url=url,encoding=encoding)
+                self.get_page_source(url=url)
                 self.clean()
                 self.get_page_data(get_page_data=get_page_data)
                 self.page_data["url"]=url
@@ -172,7 +172,7 @@ class Tps(Ops):
         将所有的json文件整合到一起
         :return:
         """
-        files = os.listdir("./temp/%s"%self.name)
+        files = os.listdir("./%s/temp"%self.name)
         all_data = []
         for file in files:
             temp = json.load(open("./%s/temp/%s" % (self.name,file)))

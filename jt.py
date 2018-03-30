@@ -16,6 +16,18 @@ def get_img(path,filename):
     with open(filename, 'wb') as fd:
         for chunk in r.iter_content():
             fd.write(chunk)
+def agg(a):
+    """
+
+    :param a:字典
+    :return:
+    """
+    import pandas as pd
+    df = pd.DataFrame()
+    for name in a.keys():
+        dft = pd.read_json("./%s/all.json"%name)
+        df = df.append(dft,ignore_index=True)
+    return df
 
 if __name__ == "__main__":
     a = is_yesterday(123123)

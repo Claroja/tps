@@ -11,6 +11,8 @@ class Ops(object):
         self.name = name
         self.path = path
         self.encoding = encoding
+        self.raw_data = None
+        self.clean_data = None
         if not os.path.exists("./%s"%self.name):  # 如果是第一次下载则创建文件夹
             os.mkdir("./%s"%self.name)
             os.mkdir("./%s/temp"%self.name)
@@ -21,9 +23,43 @@ class Ops(object):
         :param url: (str)
         :return: (None) 将源码传给self.raw_data每次解析这个都会变
         """
-        req = requests.get(url, self.headers, timeout = 61)
+        req = requests.get(url, headers =self.headers, timeout = 61)
         data = req.content
         self.raw_data = data.decode(self.encoding)
+
+    def get_page_source2(self,url=None,down=100,interval = 1,driverpath="./"):
+        """
+
+        :param url: 输入要访问的网页
+        :param down: 下拉的次数
+        :param driverpath: 浏览器驱动的位置
+        :return:
+        """
+        if os.path.exists("%s%s/raw.html"%(self.path,self.name)):  # 断点续传
+            with open("%s%s/raw.html" % (self.path,self.name), 'r') as file:
+                self.raw_data = file.read()
+        else:
+            from selenium import webdriver
+            from selenium.webdriver.common.action_chains import ActionChains
+            from selenium.webdriver.common.keys import Keys
+
+            browser = webdriver.Chrome("%schromedriver"%driverpath)  # 打开谷歌浏览器
+            browser.get(url)  # 打开打开对应的网址
+
+
+            action = ActionChains(browser)
+            for i in range(1,down+1):
+                # browser.execute_script("window.scrollBy(0, 100)")
+                action.send_keys(Keys.ARROW_DOWN)
+                # action.send_keys(Keys.UP)
+                action.perform()
+                time.sleep(interval)
+            data = browser.page_source
+            # self.raw_data = data.decode(self.encoding)
+            self.raw_data = data
+            with open('%s%s/raw.html'%(self.path,self.name),'w',encoding=self.encoding) as file:
+                json.dump(self.raw_data,file)
+        # browser.close()  # 关闭谷歌浏览器
 
     def clean(self,clean_def = None,type = "html"):
         """
@@ -71,7 +107,6 @@ class Ops(object):
             for chunk in r.iter_content():
                 fd.write(chunk)
 
-
 class Tps(Ops):
 
     def __init__(self, name, encoding='gbk',path="./"):
@@ -82,8 +117,7 @@ class Tps(Ops):
         :param change_url: (str)改变的url
         """
         super().__init__(name, encoding=encoding,path = path)
-        self.raw_data = None
-        self.clean_data = None
+
         self.page_url = None
         self.roll_url = None
         self.all_url = []
@@ -125,6 +159,19 @@ class Tps(Ops):
             self.get_page_url(get_page_url)
             self.all_url.extend(self.page_url)
             time.sleep(interval)
+        with open('./%s/all_url.json' % self.name, 'w', encoding='utf8') as file:
+            json.dump(self.all_url, file)
+
+    def iter_all_url(self,url,get_page_url,deep=10,interval =2):
+        li = []
+        self.get_page_source(url =url)
+        for i in range(2,deep+1):
+            self.clean()
+            self.get_page_url(get_page_url=get_page_url)
+            li.extend(self.page_data["urls"])
+            time.sleep(interval)
+            self.get_page_source(self.page_data["next"])
+        self.all_url = li
         with open('./%s/all_url.json' % self.name, 'w', encoding='utf8') as file:
             json.dump(self.all_url, file)
 

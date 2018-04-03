@@ -165,12 +165,15 @@ class Tps(Ops):
     def iter_all_url(self,url,get_page_url,deep=10,interval =2):
         li = []
         self.get_page_source(url =url)
-        for i in range(2,deep+1):
+        for i in range(1,deep+1):
             self.clean()
             self.get_page_url(get_page_url=get_page_url)
-            li.extend(self.page_data["urls"])
+            li.extend(self.page_url["urls"])
             time.sleep(interval)
-            self.get_page_source(self.page_data["next"])
+            try:
+                self.get_page_source(self.page_url["next"])
+            except:
+                pass
         self.all_url = li
         with open('./%s/all_url.json' % self.name, 'w', encoding='utf8') as file:
             json.dump(self.all_url, file)

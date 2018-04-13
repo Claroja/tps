@@ -13,9 +13,12 @@ class Ops(object):
         self.encoding = encoding
         self.raw_data = None
         self.clean_data = None
-        if not os.path.exists("./%s"%self.name):  # 如果是第一次下载则创建文件夹
-            os.mkdir("./%s"%self.name)
-            os.mkdir("./%s/temp"%self.name)
+        if not os.path.exists("%s" % self.path):
+            os.mkdir("%s" % self.path)
+
+        if not os.path.exists("%s%s"%(self.path,self.name)):  # 如果是第一次下载则创建文件夹
+            os.mkdir("%s%s"%(self.path,self.name))
+            os.mkdir("%s%s/temp"%(self.path,self.name))
 
     def get_page_source(self, url = None):
         """
@@ -44,6 +47,7 @@ class Ops(object):
             from selenium.webdriver.common.keys import Keys
 
             browser = webdriver.Chrome("%schromedriver"%driverpath)  # 打开谷歌浏览器
+            # browser = webdriver.PhantomJS()
             browser.get(url)  # 打开打开对应的网址
 
 
@@ -76,6 +80,13 @@ class Ops(object):
             self.clean_data = BeautifulSoup(self.clean_data, 'lxml')
         elif type == "json":
             self.clean_data = json.loads(self.clean_data)
+    def get_page_url(self, get_page_url):
+        """
+        获得该页的所有文章的url,这个方法要重写
+        :param get_page_url: 传入重写的方法名
+        :return:
+        """
+        self.page_url = get_page_url(self.clean_data)
 
     def get_page_data(self, get_page_data):
         """
@@ -86,14 +97,14 @@ class Ops(object):
         self.page_data = get_page_data(self.clean_data)
         self.page_data["name"]=self.name
 
-    def to_json(self):
+    def url_json(self):
         """
         获得文件,并保存为json
         :param path:
         :return:
         """
         with open('%s%s/all.json'%(self.path,self.name),'w',encoding='utf8') as file:
-            json.dump(self.page_data,file)
+            json.dump(self.page_url,file)
 
     def get_img(self,url,name):
         """
@@ -103,7 +114,7 @@ class Ops(object):
         :return:
         """
         r = requests.get(url,stream=True)
-        with open("./%s/img/%s"%(self.name, name), 'wb') as fd:
+        with open("%s%s/img/%s"%(self.path,self.name, name), 'wb') as fd:
             for chunk in r.iter_content():
                 fd.write(chunk)
 
@@ -124,7 +135,7 @@ class Tps(Ops):
         self.page_data = None
         self.all_data = []
 
-    def get_roll_url(self,start,end,init_url,change_url = None):
+    def get_roll_url(self,init_url,change_url = None,start=None,end=None):
         """
         获得最外层(roll)的所有连接
         :param start:(int) 开始的页面,url中类似page=1,注意有些网站第一页没有该参数
@@ -138,13 +149,7 @@ class Tps(Ops):
                 roll_url.append(url)
         self.roll_url = roll_url
 
-    def get_page_url(self, get_page_url):
-        """
-        获得该页的所有文章的url,这个方法要重写
-        :param get_page_url: 传入重写的方法名
-        :return:
-        """
-        self.page_url = get_page_url(self.clean_data)
+
 
     def get_all_url(self,get_page_url,clean_def=None, interval = 2,type="html"):
         """
@@ -159,7 +164,7 @@ class Tps(Ops):
             self.get_page_url(get_page_url)
             self.all_url.extend(self.page_url)
             time.sleep(interval)
-        with open('./%s/all_url.json' % self.name, 'w', encoding='utf8') as file:
+        with open('%s%s/all_url.json' % (self.path,self.name), 'w', encoding='utf8') as file:
             json.dump(self.all_url, file)
 
     def iter_all_url(self,url,get_page_url,deep=10,interval =2):
@@ -175,7 +180,7 @@ class Tps(Ops):
             except:
                 pass
         self.all_url = li
-        with open('./%s/all_url.json' % self.name, 'w', encoding='utf8') as file:
+        with open('%s%s/all_url.json' % (self.path,self.name), 'w', encoding='utf8') as file:
             json.dump(self.all_url, file)
 
     def get_all_data(self, get_page_data,interval = 2):
@@ -187,9 +192,9 @@ class Tps(Ops):
         :return:
         """
         start = 0
-        if os.path.exists("./%s/all_url.json"%self.name):  # 断点续传
-            self.all_url = json.load(open("./%s/all_url.json" % self.name, 'r'))
-            files = os.listdir("./%s/temp"%self.name)
+        if os.path.exists("%s%s/all_url.json"%(self.path,self.name)):  # 断点续传
+            self.all_url = json.load(open("%s%s/all_url.json" % (self.path,self.name), 'r'))
+            files = os.listdir("%s%s/temp"%(self.path,self.name))
             if len(files)>0:
                 files = [int(file.split(".")[0]) for file in files]
                 start = max(files)+2
@@ -201,20 +206,20 @@ class Tps(Ops):
                 self.clean()
                 self.get_page_data(get_page_data=get_page_data)
                 self.page_data["url"]=url
-                with open('./%s/temp/%s.json'%(self.name,i),'w',encoding='utf8') as file:
+                with open('%s%s/temp/%s.json'%(self.path,self.name,i),'w',encoding='utf8') as file:
                     json.dump(self.page_data, file)
                 time.sleep(interval)
             except:
-                with open('./%s/log.txt'%self.name, 'a', encoding='utf8') as file:
+                with open('%s%s/log.txt'%(self.path,self.name), 'a', encoding='utf8') as file:
                     file.write(url+"\n")
 
     def get_all_img(self):
-        all_data = json.load(open("./%s/all.json"%self.name, 'w'))
+        all_data = json.load(open("%s%s/all.json"%(self.path,self.name), 'w'))
         for i in range(len(all_data)):
             for j in range(len(all_data[i]["img"])):
                 name =str(i)+"-"+str(j)
                 self.get_img(all_data[i]["img"][j],name)
-            with open('./img/log.txt', 'a', encoding='utf8') as file:
+            with open('%simg/log.txt'%self.path, 'a', encoding='utf8') as file:
                 file.write(i + '\t' + all_data[i]['url'] + "\n")
 
     def add_json(self):
@@ -222,9 +227,9 @@ class Tps(Ops):
         将所有的json文件整合到一起
         :return:
         """
-        files = os.listdir("./%s/temp"%self.name)
+        files = os.listdir("%s%s/temp"%(self.path,self.name))
         all_data = []
         for file in files:
-            temp = json.load(open("./%s/temp/%s" % (self.name,file)))
+            temp = json.load(open("%s%s/temp/%s" % (self.path,self.name,file)))
             all_data.append(temp)
-        json.dump(all_data, open("./%s/all.json"%self.name, 'w'))
+        json.dump(all_data, open("%s%s/all.json"%(self.path,self.name), 'w'))

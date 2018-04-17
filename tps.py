@@ -135,7 +135,7 @@ class Tps(Ops):
         self.page_data = None
         self.all_data = []
 
-    def get_roll_url(self,init_url,change_url = None,start=None,end=None):
+    def get_roll_url(self,init_url,change_url = None,start=None,end=None,space=1):
         """
         获得最外层(roll)的所有连接
         :param start:(int) 开始的页面,url中类似page=1,注意有些网站第一页没有该参数
@@ -145,7 +145,7 @@ class Tps(Ops):
         roll_url = [init_url]
         if change_url:
             for i in range(start, (end+1)):
-                url = change_url % i
+                url = change_url % (i*space)
                 roll_url.append(url)
         self.roll_url = roll_url
 

@@ -209,9 +209,9 @@ class Tps(Ops):
                 with open('%s%s/temp/%s.json'%(self.path,self.name,i),'w',encoding='utf8') as file:
                     json.dump(self.page_data, file)
                 time.sleep(interval)
-            except:
+            except Exception as e:
                 with open('%s%s/log.txt'%(self.path,self.name), 'a', encoding='utf8') as file:
-                    file.write(url+"\n")
+                    file.write(url +' '+str(e) +"\n")
 
     def get_all_img(self):
         all_data = json.load(open("%s%s/all.json"%(self.path,self.name), 'w'))

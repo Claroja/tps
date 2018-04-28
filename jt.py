@@ -38,8 +38,8 @@ def agg(path,yesterday):
     # log文件模块
     for city in cities:
         if os.path.exists("%s%s/log.txt" % (path, city)):
-            with open("%s%s/log.txt" % (path, city)) as file : a = file.read()
-            with open("%sday/%s.error"%(path,yesterday),'a') as file : file.write(a+"\n")
+            with open("%s%s/log.txt" % (path, city),encoding='utf8') as file : a = file.read()
+            with open("%sday/%s.error"%(path,yesterday),'a',encoding='utf8') as file : file.write(a+"\n")
 
     # 删除模块
 
@@ -49,9 +49,17 @@ def agg(path,yesterday):
     num = len(json.load(open("%sday/%s.json" % (path,yesterday)))) # 今天的条数
     with open("%ssche" % (path), 'a') as file: file.write(yesterday+"\t"+str(num) + "\n")
 
+def excel(path,yesterday):
+    import pandas as pd
+    df = pd.read_json(path_or_buf="./%s/day/%s.json" % (path, yesterday))
+    df.head()
+    df.to_excel("./%s/day/%s.xlsx" % (path, yesterday))
 
-
-
+def csv(path,yesterday):
+    import pandas as pd
+    df = pd.read_json(path_or_buf="./%s/day/%s.json" % (path, yesterday))
+    df.head()
+    df.to_csv("./%s/day/%s.csv" % (path, yesterday))
 
 if __name__ == "__main__":
     a = is_yesterday(123123)

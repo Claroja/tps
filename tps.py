@@ -168,7 +168,7 @@ class Tps(Ops):
         return self.roll_url
 
 
-    def get_all_url(self,get_page_url,clean_def=None, interval = 2,type="html",engine="requests",pre=None,down=50):
+    def get_all_url(self,get_page_url,clean_def=None, interval = 2,type="html",engine="requests",pre=None,down=50,mod="gui"):
         """
         遍历roll_url获得每一页的page_url，再将他们合在一起。并保存成json
         :param get_page_url: 传入获得每一页url的方法
@@ -179,7 +179,7 @@ class Tps(Ops):
             if engine == "requests":
                 self.get_page_source(url= url)
             if engine == "selenium":
-                self.get_page_source2(url=url,down=down,pre=pre)
+                self.get_page_source2(url=url,down=down,pre=pre,mod=mod)
             self.clean(clean_def,type=type)
             self.get_page_url(get_page_url)
             self.all_url.extend(self.page_url)

@@ -42,7 +42,6 @@ def agg(path,yesterday):
             with open("%sday/%s.error"%(path,yesterday),'a',encoding='utf8') as file : file.write(a+"\n")
 
     # 删除模块
-
     for city in cities:
         shutil.rmtree("%s%s"%(path,city))
 
@@ -75,11 +74,19 @@ def stat(path,name):
     df.drop_duplicates(inplace=True)
     df = df.reset_index(drop=True)
     df.to_csv("./%s/day/all.csv" % path)
-    shutil.copyfile("./%s/day/all.csv" % path,"./all/%s/all.csv"% name)
+    df.to_json("./%s/day/all.json" % path)
+    # shutil.copyfile("./%s/day/all.csv" % path,"./all/%s/all.csv"% name)
+    # shutil.copyfile("./%s/day/all.json" % path, "./all/%s/all.json" % name)
 
+def move(path,name,yesterday):
+    # shutil.copyfile("./%s/day/all.csv" % path,"./all/%s/all.csv"% name)
+    # shutil.copyfile("./%s/day/all.json" % path, "./all/%s/all.json" % name)
+    if not os.path.exists("./all") : os.mkdir("./all")
+    if not os.path.exists("./all/%s" % name): os.mkdir("./all/%s" % name)
 
-
-
+    shutil.copyfile("%sday/%s.json" % (path,yesterday), "./all/%s/%s.json" % (name,yesterday))
+    # shutil.copyfile("%sday/%s.xlsx" % (path, yesterday), "./all/%s/%s.xlsx" % (name, yesterday))
+    shutil.copyfile("%sday/%s.csv" % (path, yesterday), "./all/%s/%s.csv" % (name, yesterday))
 
 if __name__ == "__main__":
     a = is_yesterday(123123)
